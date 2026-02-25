@@ -8,10 +8,9 @@ app.use(express.json());
 
 let cache = {};
 let lastFetch = {};
-const CACHE_DURATION = 1000 * 60 * 60 * 6;
+const CACHE_DURATION = 1000 * 60 * 60 * 6; // 6 heures
 
 app.post("/matches", async (req, res) => {
-
   const { date, prompt } = req.body;
 
   if (cache[date] && Date.now() - lastFetch[date] < CACHE_DURATION) {
@@ -19,24 +18,14 @@ app.post("/matches", async (req, res) => {
   }
 
   try {
-
-    const response = await fetch(
-      "https://api.anthropic.com/v1/messages",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01"
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 2000,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{ role: "user", content: prompt }]
-        })
-      }
-    );
+    const response = await fetch("https://mlvoca.com/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "tinyllama",
+        prompt: prompt
+      })
+    });
 
     const data = await response.json();
 
@@ -46,8 +35,10 @@ app.post("/matches", async (req, res) => {
     res.json(data);
 
   } catch (e) {
-    res.status(500).json({ error: "Erreur Claude" });
+    console.error(e);
+    res.status(500).json({ error: "Erreur API gratuite" });
   }
 });
 
-app.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
